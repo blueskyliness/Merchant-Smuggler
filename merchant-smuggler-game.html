@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Merchant & Smuggler</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5e6c8;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        .game-board {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #d9c8a9;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            color: #5d4037;
+            margin-bottom: 10px;
+        }
+        .players-container {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin: 20px 0;
+        }
+        .player {
+            width: 180px;
+            background-color: #f8f1e3;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 0 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .player.active {
+            border: 3px solid #4caf50;
+        }
+        .player.inspector {
+            border: 3px solid #f44336;
+        }
+        .goods {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        .good {
+            width: 60px;
+            height: 80px;
+            margin: 5px;
+            background-color: #fff;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+            user-select: none;
+        }
+        .good:hover {
+            transform: translateY(-5px);
+            transition: transform 0.2s;
+        }
+        .legal {
+            background-color: #c8e6c9;
+        }
+        .contraband {
+            background-color: #ffcdd2;
+        }
+        .good-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        .good-value {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .market {
+            background-color: #f8f1e3;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            width: 90%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            width: 90%;
+            margin: 10px 0;
+        }
+        button {
+            background-color: #8d6e63;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #6d4c41;
+        }
+        button:disabled {
+            background-color: #d7ccc8;
+            cursor: not-allowed;
+        }
+        .bag {
+            background-color: #fff3e0;
+            border: 2px dashed #8d6e63;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .bag-items {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            min-height: 90px;
+        }
+        .declaration {
+            margin: 10px 0;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #f8f1e3;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 500px;
+            text-align: center;
+        }
+        .game-rules {
+            background-color: #f8f1e3;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            width: 90%;
+            text-align: left;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-board">
+        <h1>Merchant & Smuggler</h1>
+        <p>เล่นเป็นพ่อค้าที่ต้องการทำกำไรจากการซื้อขายสินค้า แต่ต้องระวังนายด่านที่จะตรวจกระเป๋าของคุณ!</p>
+        
+        <div class="game-rules">
+            <h3>กติกา:</h3>
+            <ol>
+                <li>ในแต่ละรอบ จะมีผู้เล่น 1 คนที่ได้รับบทบาทเป็นนายด่าน (Inspector) คนอื่นๆเป็นพ่อค้า</li>
+                <li>พ่อค้าจะเลือกสินค้าใส่กระเป๋า โดยสามารถเลือกได้ทั้งสินค้าถูกกฎหมาย (สีเขียว) และผิดกฎหมาย (สีแดง)</li>
+                <li>พ่อค้าต้องประกาศจำนวนสินค้าถูกกฎหมายที่บรรจุในกระเป๋า (จะโกหกก็ได้)</li>
+                <li>นายด่านต้องเลือกว่าจะตรวจกระเป๋าหรือปล่อยผ่าน</li>
+                <li>ถ้าตรวจและพบสินค้าผิดกฎหมาย พ่อค้าต้องจ่ายค่าปรับและสินค้าจะถูกยึด</li>
+                <li>ถ้าตรวจแต่ไม่พบสินค้าผิดกฎหมาย นายด่านต้องจ่ายค่าเสียเวลาให้พ่อค้า</li>
+                <li>ถ้าปล่อยผ่าน พ่อค้าได้รับเงินตามมูลค่าสินค้าทั้งหมด</li>
+                <li>รอบจบเมื่อทุกคนได้เป็นนายด่านครบ 1 รอบ</li>
+            </ol>
+        </div>
+
+        <div class="controls">
+            <button id="new-game-btn">เริ่มเกมใหม่</button>
+        </div>
+
+        <div class="players-container" id="players-container"></div>
+
+        <div class="market">
+            <h3>ตลาด</h3>
+            <div class="goods" id="goods-market">
+                <!-- สินค้าจะถูกเพิ่มด้วย JavaScript -->
+            </div>
+        </div>
+
+        <div class="bag">
+            <h3>กระเป๋าของคุณ</h3>
+            <div class="bag-items" id="player-bag"></div>
+            <div class="declaration">
+                <p>ประกาศจำนวนสินค้าถูกกฎหมาย: <span id="declared-count">0</span></p>
+                <button id="declare-minus">-</button>
+                <button id="declare-plus">+</button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="submit-bag-btn" disabled>ส่งกระเป๋าให้นายด่าน</button>
+            <button id="inspect-btn" disabled>ตรวจกระเป๋า</button>
+            <button id="pass-btn" disabled>ปล่อยผ่าน</button>
+            <button id="next-turn-btn" disabled>ต่อไป</button>
+        </div>
+    </div>
+
+    <div class="modal" id="inspection-modal">
+        <div class="modal-content">
+            <h2>ผลการตรวจสอบ</h2>
+            <p id="inspection-result"></p>
+            <button id="close-inspection">ปิด</button>
+        </div>
+    </div>
+
+    <script>
+        // ตัวแปรสำหรับข้อมูลเกม
+        let players = [];
+        let currentPlayerIndex = 0;
+        let inspectorIndex = 0;
+        let roundCount = 0;
+        let marketGoods = [];
+        let playerBag = [];
+        let declaredLegalCount = 0;
+        let gameStarted = false;
+
+        // สินค้าในเกม
+        const goodsData = [
+            { name: "ขนมปัง", icon: "🍞", value: 2, legal: true },
+            { name: "ผลไม้", icon: "🍎", value: 3, legal: true },
+            { name: "ชีส", icon: "🧀", value: 4, legal: true },
+            { name: "น้ำผึ้ง", icon: "🍯", value: 5, legal: true },
+            { name: "ไวน์", icon: "🍷", value: 8, legal: false },
+            { name: "เครื่องเพชร", icon: "💎", value: 9, legal: false },
+            { name: "ยาสูบ", icon: "🚬", value: 7, legal: false },
+            { name: "อาวุธ", icon: "🗡️", value: 10, legal: false }
+        ];
+
+        // ฟังก์ชั่นสำหรับสร้างเกมใหม่
+        document.getElementById('new-game-btn').addEventListener('click', startNewGame);
+
+        function startNewGame() {
+            // รีเซ็ตข้อมูลเกม
+            const playerCount = prompt("ใส่จำนวนผู้เล่น (2-6 คน):", "4");
+            const count = parseInt(playerCount);
+            
+            if (isNaN(count) || count < 2 || count > 6) {
+                alert("จำนวนผู้เล่นต้องอยู่ระหว่าง 2-6 คน");
+                return;
+            }
+
+            initializeGame(count);
+        }
+
+        function initializeGame(playerCount) {
+            players = [];
+            for (let i = 0; i < playerCount; i++) {
+                const playerName = prompt(`ชื่อผู้เล่นคนที่ ${i + 1}:`, `ผู้เล่น ${i + 1}`);
+                players.push({
+                    name: playerName || `ผู้เล่น ${i + 1}`,
+                    coins: 50,
+                    score: 0
+                });
+            }
+
+            currentPlayerIndex = 0;
+            inspectorIndex = players.length - 1; // คนสุดท้ายเป็นนายด่านรอบแรก
+            roundCount = 0;
+            playerBag = [];
+            declaredLegalCount = 0;
+            gameStarted = true;
+
+            updateMarket();
+            updatePlayerDisplay();
+            updateControls();
+            
+            alert(`เกมเริ่มแล้ว! ${players[currentPlayerIndex].name} เป็นผู้เล่นคนแรก และ ${players[inspectorIndex].name} เป็นนายด่าน`);
+        }
+
+        // ฟังก์ชั่นสำหรับอัพเดทหน้าเกม
+        function updatePlayerDisplay() {
+            const container = document.getElementById('players-container');
+            container.innerHTML = '';
+
+            players.forEach((player, index) => {
+                const playerElement = document.createElement('div');
+                playerElement.className = 'player';
+                
+                if (index === currentPlayerIndex && index !== inspectorIndex) {
+                    playerElement.classList.add('active');
+                }
+                
+                if (index === inspectorIndex) {
+                    playerElement.classList.add('inspector');
+                }
+
+                playerElement.innerHTML = `
+                    <h3>${player.name}</h3>
+                    <p>💰 ${player.coins} เหรียญ</p>
+                    <p>${index === inspectorIndex ? '👮 นายด่าน' : '🧑‍🌾 พ่อค้า'}</p>
+                `;
+                
+                container.appendChild(playerElement);
+            });
+        }
+
+        function updateMarket() {
+            const market = document.getElementById('goods-market');
+            market.innerHTML = '';
+
+            marketGoods = [];
+            // สร้างสินค้าในตลาด
+            goodsData.forEach(good => {
+                // สุ่มจำนวนสินค้าแต่ละประเภท 1-3 ชิ้น
+                const count = Math.floor(Math.random() * 3) + 1;
+                
+                for (let i = 0; i < count; i++) {
+                    marketGoods.push({ ...good });
+                    
+                    const goodElement = document.createElement('div');
+                    goodElement.className = `good ${good.legal ? 'legal' : 'contraband'}`;
+                    goodElement.innerHTML = `
+                        <div class="good-icon">${good.icon}</div>
+                        <div>${good.name}</div>
+                        <div class="good-value">${good.value} เหรียญ</div>
+                    `;
+                    
+                    // เพิ่ม event listener สำหรับการคลิกที่สินค้า
+                    goodElement.addEventListener('click', () => {
+                        if (currentPlayerIndex !== inspectorIndex && playerBag.length < 5) {
+                            // คลิกสินค้าเพื่อใส่กระเป๋า
+                            moveGoodToBag(marketGoods.indexOf(good));
+                        }
+                    });
+                    
+                    market.appendChild(goodElement);
+                }
+            });
+        }
+
+        function updateBagDisplay() {
+            const bag = document.getElementById('player-bag');
+            bag.innerHTML = '';
+            
+            playerBag.forEach((good, index) => {
+                const goodElement = document.createElement('div');
+                goodElement.className = `good ${good.legal ? 'legal' : 'contraband'}`;
+                goodElement.innerHTML = `
+                    <div class="good-icon">${good.icon}</div>
+                    <div>${good.name}</div>
+                    <div class="good-value">${good.value} เหรียญ</div>
+                `;
+                
+                // เพิ่ม event listener สำหรับการคลิกที่สินค้าในกระเป๋า
+                goodElement.addEventListener('click', () => {
+                    if (currentPlayerIndex !== inspectorIndex && !document.getElementById('submit-bag-btn').disabled) {
+                        // คลิกสินค้าในกระเป๋าเพื่อเอาออก
+                        removeGoodFromBag(index);
+                    }
+                });
+                
+                bag.appendChild(goodElement);
+            });
+        }
+
+        function moveGoodToBag(index) {
+            if (index >= 0 && index < marketGoods.length) {
+                playerBag.push(marketGoods[index]);
+                marketGoods.splice(index, 1);
+                updateMarket();
+                updateBagDisplay();
+                updateControls();
+            }
+        }
+
+        function removeGoodFromBag(index) {
+            if (index >= 0 && index < playerBag.length) {
+                marketGoods.push(playerBag[index]);
+                playerBag.splice(index, 1);
+                updateMarket();
+                updateBagDisplay();
+                updateControls();
+                
+                // อัพเดทจำนวนสินค้าที่ประกาศ
+                if (declaredLegalCount > countLegalGoodsInBag()) {
+                    declaredLegalCount = countLegalGoodsInBag();
+                    document.getElementById('declared-count').textContent = declaredLegalCount;
+                }
+            }
+        }
+
+        function countLegalGoodsInBag() {
+            return playerBag.filter(good => good.legal).length;
+        }
+
+        // การประกาศจำนวนสินค้า
+        document.getElementById('declare-minus').addEventListener('click', () => {
+            if (declaredLegalCount > 0) {
+                declaredLegalCount--;
+                document.getElementById('declared-count').textContent = declaredLegalCount;
+            }
+        });
+
+        document.getElementById('declare-plus').addEventListener('click', () => {
+            if (declaredLegalCount < playerBag.length) {
+                declaredLegalCount++;
+                document.getElementById('declared-count').textContent = declaredLegalCount;
+            }
+        });
+
+        // การส่งกระเป๋าให้นายด่าน
+        document.getElementById('submit-bag-btn').addEventListener('click', () => {
+            if (playerBag.length > 0) {
+                document.getElementById('submit-bag-btn').disabled = true;
+                document.getElementById('inspect-btn').disabled = false;
+                document.getElementById('pass-btn').disabled = false;
+                
+                // สลับไปที่ผู้เล่นที่เป็นนายด่าน
+                currentPlayerIndex = inspectorIndex;
+                updatePlayerDisplay();
+                alert(`${players[inspectorIndex].name} (นายด่าน) กำลังตัดสินใจว่าจะตรวจกระเป๋าหรือไม่...`);
+            }
+        });
+
+        // การตรวจกระเป๋า
+        document.getElementById('inspect-btn').addEventListener('click', () => {
+            const legalGoods = playerBag.filter(good => good.legal);
+            const contrabandGoods = playerBag.filter(good => !good.legal);
+            
+            let resultMessage = "";
+            
+            if (contrabandGoods.length > 0) {
+                // พบสินค้าผิดกฎหมาย
+                const fine = contrabandGoods.reduce((sum, good) => sum + good.value, 0);
+                const merchantIndex = (inspectorIndex + 1) % players.length;
+                
+                players[merchantIndex].coins -= fine;
+                players[inspectorIndex].coins += fine;
+                
+                resultMessage = `
+                    <p>พบสินค้าผิดกฎหมาย ${contrabandGoods.length} ชิ้น!</p>
+                    <p>${players[merchantIndex].name} ถูกปรับ ${fine} เหรียญ</p>
+                    <p>สินค้าทั้งหมดถูกยึด!</p>
+                `;
+            } else {
+                // ไม่พบสินค้าผิดกฎหมาย
+                const compensation = 4; // ค่าเสียเวลา
+                const merchantIndex = (inspectorIndex + 1) % players.length;
+                
+                players[inspectorIndex].coins -= compensation;
+                players[merchantIndex].coins += compensation;
+                
+                // พ่อค้าได้รับเงินจากสินค้าถูกกฎหมาย
+                const goodsValue = legalGoods.reduce((sum, good) => sum + good.value, 0);
+                players[merchantIndex].coins += goodsValue;
+                
+                resultMessage = `
+                    <p>ไม่พบสินค้าผิดกฎหมาย!</p>
+                    <p>${players[inspectorIndex].name} ต้องจ่ายค่าเสียเวลา ${compensation} เหรียญ</p>
+                    <p>${players[merchantIndex].name} ได้รับเงินจากสินค้า ${goodsValue} เหรียญ</p>
+                `;
+            }
+            
+            showInspectionResult(resultMessage);
+        });
+
+        // การปล่อยผ่าน
+        document.getElementById('pass-btn').addEventListener('click', () => {
+            const merchantIndex = (inspectorIndex + 1) % players.length;
+            
+            // พ่อค้าได้รับเงินทั้งหมด
+            const totalValue = playerBag.reduce((sum, good) => sum + good.value, 0);
+            players[merchantIndex].coins += totalValue;
+            
+            let resultMessage = `
+                <p>${players[inspectorIndex].name} ปล่อยให้ผ่านด่าน!</p>
+                <p>${players[merchantIndex].name} ได้รับเงินจากสินค้าทั้งหมด ${totalValue} เหรียญ</p>
+            `;
+            
+            showInspectionResult(resultMessage);
+        });
+
+        function showInspectionResult(message) {
+            document.getElementById('inspection-result').innerHTML = message;
+            document.getElementById('inspection-modal').style.display = 'flex';
+            
+            document.getElementById('inspect-btn').disabled = true;
+            document.getElementById('pass-btn').disabled = true;
+            document.getElementById('next-turn-btn').disabled = false;
+        }
+
+        document.getElementById('close-inspection').addEventListener('click', () => {
+            document.getElementById('inspection-modal').style.display = 'none';
+        });
+
+        // ต่อไปรอบถัดไป
+        document.getElementById('next-turn-btn').addEventListener('click', () => {
+            // เปลี่ยนตัวเล่นและนายด่าน
+            playerBag = [];
+            declaredLegalCount = 0;
+            document.getElementById('declared-count').textContent = declaredLegalCount;
+            
+            // ตัดสินใจว่าจะจบเกมหรือไม่
+            inspectorIndex = (inspectorIndex + 1) % players.length;
+            currentPlayerIndex = (inspectorIndex + 1) % players.length;
+            
+            if (inspectorIndex === 0) {
+                roundCount++;
+                
+                // ตรวจสอบว่าครบรอบหรือยัง (เล่น 2 รอบ)
+                if (roundCount >= 2) {
+                    endGame();
+                    return;
+                }
+            }
+            
+            updateMarket();
+            updateBagDisplay();
+            updatePlayerDisplay();
+            updateControls();
+            
+            document.getElementById('next-turn-btn').disabled = true;
+        });
+
+        function updateControls() {
+            const submitBtn = document.getElementById('submit-bag-btn');
+            const inspectBtn = document.getElementById('inspect-btn');
+            const passBtn = document.getElementById('pass-btn');
+            
+            // ปุ่มส่งกระเป๋าจะใช้ได้เมื่อเป็นพ่อค้าและมีสินค้าในกระเป๋า
+            submitBtn.disabled = (currentPlayerIndex === inspectorIndex || playerBag.length === 0);
+            
+            // ปุ่มตรวจและปล่อยผ่านจะใช้ได้เมื่อเป็นนายด่านและได้รับกระเป๋าแล้ว
+            inspectBtn.disabled = passBtn.disabled = true; // จะเปิดใช้งานเมื่อกดส่งกระเป๋า
+        }
+
+        function endGame() {
+            let winner = players[0];
+            let maxCoins = winner.coins;
+            
+            for (let i = 1; i < players.length; i++) {
+                if (players[i].coins > maxCoins) {
+                    maxCoins = players[i].coins;
+                    winner = players[i];
+                }
+            }
+            
+            const resultMessage = `
+                <h2>เกมจบแล้ว!</h2>
+                <p>ผู้ชนะคือ: ${winner.name} ด้วยเงิน ${winner.coins} เหรียญ</p>
+                <p>คะแนนทั้งหมด:</p>
+                <ul>
+                    ${players.map(player => `<li>${player.name}: ${player.coins} เหรียญ</li>`).join("")}
+                </ul>
+            `;
+            
+            document.getElementById('inspection-result').innerHTML = resultMessage;
+            document.getElementById('inspection-modal').style.display = 'flex';
+            
+            // รีเซ็ตเกม
+            gameStarted = false;
+            document.getElementById('submit-bag-btn').disabled = true;
+            document.getElementById('inspect-btn').disabled = true;
+            document.getElementById('pass-btn').disabled = true;
+            document.getElementById('next-turn-btn').disabled = true;
+        }
+    </script>
+</body>
+</html>
